@@ -142,6 +142,39 @@ async function injectIndicator(tabId, active, label = "Antigravity работа�
         let idleTimer = null;
         let lastRippleAt = 0;
 
+        // Track genuine human mouse trails so AGY cursor NEVER follows the user's cursor.
+        let humanMoves = [];
+        let lastHumanX = -9999;
+        let lastHumanY = -9999;
+
+        function onHumanMove(e) {
+          if (!e.isTrusted) return;
+          const now = Date.now();
+          const dx = Math.abs(e.clientX - lastHumanX);
+          const dy = Math.abs(e.clientY - lastHumanY);
+          // Human motion produces multiple small continuous steps, unlike CDP teleporting.
+          if (dx > 0 || dy > 0) {
+            if (dx < 120 && dy < 120) {
+              humanMoves.push({ x: e.clientX, y: e.clientY, t: now });
+              if (humanMoves.length > 12) humanMoves.shift();
+            } else {
+              humanMoves = [];
+            }
+            lastHumanX = e.clientX;
+            lastHumanY = e.clientY;
+          }
+        }
+
+        function isLikelyHumanClick(e, pt) {
+          if (!e.isTrusted) return false;
+          const now = Date.now();
+          const recent = humanMoves.filter((m) => now - m.t < 450);
+          if (recent.length < 3) return false;
+          const last = recent[recent.length - 1];
+          const dist = Math.hypot(pt.x - last.x, pt.y - last.y);
+          return dist < 18;
+        }
+
         function moveCursor(x, y, squish = false) {
           if (!Number.isFinite(x) || !Number.isFinite(y)) return;
           curX = x;
@@ -182,44 +215,35 @@ async function injectIndicator(tabId, active, label = "Antigravity работа�
           return null;
         }
 
-        function onMove(e) {
-          if (pill.contains(e.target)) return;
-          const pt = coordsFromEvent(e);
-          if (pt) moveCursor(pt.x, pt.y, false);
-        }
-
-        function onPress(e) {
+        function onAgentPress(e) {
           if (pill.contains(e.target)) return;
           const pt = coordsFromEvent(e);
           if (!pt) return;
+          if (isLikelyHumanClick(e, pt)) return;
           moveCursor(pt.x, pt.y, true);
           spawnRipple(pt.x, pt.y);
         }
 
-        function onFocusOrInput(e) {
-          if (pill.contains(e.target)) return;
-          if (!e.target || typeof e.target.getBoundingClientRect !== "function") return;
-          const rect = e.target.getBoundingClientRect();
-          if (rect.width <= 0 && rect.height <= 0) return;
-          moveCursor(rect.left + Math.min(rect.width * 0.5, 48), rect.top + rect.height / 2, false);
+        function onCustomCursor(e) {
+          const detail = e.detail || {};
+          if (typeof detail.x === "number" && typeof detail.y === "number") {
+            moveCursor(detail.x, detail.y, Boolean(detail.click));
+            if (detail.click) spawnRipple(detail.x, detail.y);
+          }
         }
 
         const opts = { capture: true, passive: true };
-        window.addEventListener("pointermove", onMove, opts);
-        window.addEventListener("mousemove", onMove, opts);
-        window.addEventListener("pointerdown", onPress, opts);
-        window.addEventListener("click", onPress, opts);
-        window.addEventListener("focusin", onFocusOrInput, opts);
-        window.addEventListener("input", onFocusOrInput, opts);
+        window.addEventListener("mousemove", onHumanMove, opts);
+        window.addEventListener("pointerdown", onAgentPress, opts);
+        window.addEventListener("click", onAgentPress, opts);
+        window.addEventListener("__agy_cursor", onCustomCursor);
 
         window.__agyCoworkCleanup = () => {
           clearTimeout(idleTimer);
-          window.removeEventListener("pointermove", onMove, opts);
-          window.removeEventListener("mousemove", onMove, opts);
-          window.removeEventListener("pointerdown", onPress, opts);
-          window.removeEventListener("click", onPress, opts);
-          window.removeEventListener("focusin", onFocusOrInput, opts);
-          window.removeEventListener("input", onFocusOrInput, opts);
+          window.removeEventListener("mousemove", onHumanMove, opts);
+          window.removeEventListener("pointerdown", onAgentPress, opts);
+          window.removeEventListener("click", onAgentPress, opts);
+          window.removeEventListener("__agy_cursor", onCustomCursor);
         };
       },
       args: [active, label],
