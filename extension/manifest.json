@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Antigravity Cowork for Brave",
+  "version": "1.0.0",
+  "description": "Локальное расширение для Antigravity CLI: фоновые группы вкладок под задачи, индикатор работы агента, быстрая остановка и доступ к истории/закладкам.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4JTYi3Hh3kzDfsBLFbjlxDC/x7dYmhE6L8DPYWUIe2OOaLMN7JeT6sdC3V/KJhUu0bMVh94TQnKJUps0IyQXFrqXEu03YEtLOh2jSYlN5ww/OsGxvMm1rrRaS0fVN4iw6tou7g3DX2wUbsUXh1n40FH9dbcad2EwQdKLOsSXMgO8u+T0X2XTVC3jtmeawqMz0JG7v87/1AhOXbSgRg+qCMkanesIxLU7GfxeZlnS+mNfZrXF3kwjdg3s/YwspJ6D15FcSDE9/DIzGojvRrb3vI/KnyobcTskxvzzbK1WKyDCQkNkNoo8/AQicM92rL9B+4FGXmzK7efg6War3h5crwIDAQAB",
+  "permissions": [
+    "tabs",
+    "tabGroups",
+    "storage",
+    "alarms",
+    "scripting",
+    "bookmarks",
+    "history",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Antigravity Cowork",
+    "default_popup": "popup.html"
+  }
+}

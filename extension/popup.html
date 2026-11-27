@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Antigravity Cowork</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      background: #11111b;
+      color: #cdd6f4;
+      font: 13px/1.4 system-ui, -apple-system, sans-serif;
+      padding: 14px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #313244;
+    }
+    .title { font-weight: 700; font-size: 14px; color: #f5e0dc; }
+    .status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: #a6adc8;
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #6c7086;
+    }
+    .dot.on { background: #a6e3a1; box-shadow: 0 0 6px #a6e3a1; }
+    .section-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+      color: #9399b2; margin: 10px 0 6px;
+    }
+    .empty {
+      color: #6c7086; font-size: 12px; padding: 10px;
+      text-align: center; background: #181825; border-radius: 8px;
+    }
+    .group {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; padding: 8px 10px; margin-bottom: 6px;
+      background: #1e1e2e; border-radius: 8px; border: 1px solid #313244;
+    }
+    .group-info { min-width: 0; flex: 1; }
+    .group-name {
+      font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .group-meta { font-size: 11px; color: #9399b2; }
+    .btn {
+      border: none; border-radius: 6px; padding: 4px 8px;
+      font: 600 11px/1.2 system-ui, sans-serif; cursor: pointer;
+    }
+    .btn-open { background: #313244; color: #cdd6f4; }
+    .btn-open:hover { background: #45475a; }
+    .btn-close { background: #f38ba8; color: #11111b; }
+    .btn-close:hover { background: #eba0ac; }
+    .btn-danger {
+      width: 100%; margin-top: 6px; padding: 7px;
+      background: #313244; color: #f38ba8; border: 1px solid #45475a;
+    }
+    .btn-danger:hover { background: #45475a; }
+    .toggles {
+      margin-top: 12px; padding-top: 10px; border-top: 1px solid #313244;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    label.toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">Antigravity Cowork</div>
+    <div class="status">
+      <span id="dot" class="dot"></span>
+      <span id="statusText">...</span>
+    </div>
+  </div>
+
+  <div class="section-title">Активные папки задач</div>
+  <div id="groupsList"></div>
+  <button id="closeAllBtn" class="btn btn-danger" style="display:none;">
+    Закрыть все папки агента
+  </button>
+
+  <div class="toggles">
+    <label class="toggle">
+      <span>Сворачивать новые папки в фоне</span>
+      <input type="checkbox" id="autoCollapse" />
+    </label>
+    <label class="toggle">
+      <span>Рамка-индикатор на вкладках агента</span>
+      <input type="checkbox" id="showIndicator" />
+    </label>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
