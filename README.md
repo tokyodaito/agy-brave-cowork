@@ -9,7 +9,7 @@
 Zero-dependency Brave extension + local MCP server that brings a full **Cowork browser experience** to **Antigravity CLI (`agy`)**:
 
 - **Background Task Tab Groups (`chrome.tabGroups`)** — creates a named, colored, collapsed tab group per task session, opens all agent tabs in the background without stealing focus, and deletes the group cleanly when the task finishes.
-- **Visual Agent Indicator & Instant Kill-Switch** — injects a subtle glowing border + floating status pill with a **Stop** button onto agent-controlled tabs, plus a toolbar popup to inspect, focus, or close active task groups.
+- **Visual Agent Indicator, Flying Cursor & Instant Kill-Switch** — injects a subtle glowing border, a Claude-style animated flying cursor (`AGY`) with click ripple animations that tracks every agent click/hover/input, and a floating status pill with a **Stop** button onto agent-controlled tabs, plus a toolbar popup to inspect, focus, or close active task groups.
 - **Native Messaging Bridge** — zero external npm dependencies, zero permission popups, communicates locally over a `0600` Unix domain socket (`/tmp/agy-brave-cowork.sock`).
 - **Read-Only Context** — search Brave browsing history and bookmarks directly from the agent.
 

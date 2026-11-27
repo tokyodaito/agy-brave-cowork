@@ -65,9 +65,16 @@ async function injectIndicator(tabId, active, label = "Antigravity работа�
       target: { tabId },
       func: (isActive, text) => {
         const ROOT_ID = "__agy_cowork_indicator__";
+        const STYLE_ID = "__agy_cowork_style__";
         const existing = document.getElementById(ROOT_ID);
         if (!isActive) {
+          if (typeof window.__agyCoworkCleanup === "function") {
+            window.__agyCoworkCleanup();
+            delete window.__agyCoworkCleanup;
+          }
           if (existing) existing.remove();
+          const st = document.getElementById(STYLE_ID);
+          if (st) st.remove();
           return;
         }
         if (existing) {
@@ -75,16 +82,33 @@ async function injectIndicator(tabId, active, label = "Antigravity работа�
           if (span) span.textContent = text;
           return;
         }
+
+        const style = document.createElement("style");
+        style.id = STYLE_ID;
+        style.textContent = `
+          @keyframes __agyRipple {
+            0% { transform: translate(-50%, -50%) scale(0.25); opacity: 0.9; }
+            100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+          }
+          @keyframes __agyPulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.45; transform: scale(0.8); }
+          }
+        `;
+        document.documentElement.appendChild(style);
+
         const host = document.createElement("div");
         host.id = ROOT_ID;
         host.style.cssText =
           "position:fixed;inset:0;pointer-events:none;z-index:2147483647;box-sizing:border-box;border:3px solid rgba(124,58,237,0.75);box-shadow:inset 0 0 18px rgba(124,58,237,0.35);";
+
+        // Floating status pill with Stop button
         const pill = document.createElement("div");
         pill.style.cssText =
           "position:fixed;top:10px;right:14px;pointer-events:auto;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(17,17,27,0.92);color:#f3f4f6;font:600 12px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,0.35);border:1px solid rgba(167,139,250,0.5);backdrop-filter:blur(6px);";
         const dot = document.createElement("span");
         dot.style.cssText =
-          "width:8px;height:8px;border-radius:50%;background:#a78bfa;display:inline-block;";
+          "width:8px;height:8px;border-radius:50%;background:#a78bfa;display:inline-block;animation:__agyPulseDot 1.6s ease-in-out infinite;";
         const span = document.createElement("span");
         span.setAttribute("data-agy-label", "1");
         span.textContent = text;
@@ -92,12 +116,111 @@ async function injectIndicator(tabId, active, label = "Antigravity работа�
         btn.textContent = "Стоп";
         btn.style.cssText =
           "margin-left:4px;padding:2px 8px;border-radius:999px;border:none;background:#ef4444;color:#fff;font:600 11px/1.2 system-ui,sans-serif;cursor:pointer;";
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
           chrome.runtime.sendMessage({ type: "STOP_CURRENT_GROUP" });
         });
         pill.append(dot, span, btn);
-        host.appendChild(pill);
+
+        // Claude-style flying agent cursor
+        const cursor = document.createElement("div");
+        cursor.setAttribute("data-agy-cursor", "1");
+        cursor.style.cssText =
+          "position:fixed;top:0;left:0;pointer-events:none;z-index:2147483647;opacity:0;transform:translate3d(-100px,-100px,0);transition:transform 320ms cubic-bezier(0.22,1,0.36,1),opacity 220ms ease;will-change:transform;";
+        cursor.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" style="display:block;filter:drop-shadow(0 2px 6px rgba(124,58,237,0.55));">
+            <path d="M4 2.5L20.5 11.2L13.2 13.4L9.8 20.5L4 2.5Z" fill="#7c3aed" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/>
+          </svg>
+          <div style="position:absolute;left:18px;top:16px;padding:2px 7px;border-radius:999px;background:rgba(124,58,237,0.95);color:#fff;font:700 10px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:0.03em;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.28);">AGY</div>
+        `;
+
+        host.append(pill, cursor);
         document.documentElement.appendChild(host);
+
+        let curX = window.innerWidth * 0.5;
+        let curY = window.innerHeight * 0.5;
+        let idleTimer = null;
+        let lastRippleAt = 0;
+
+        function moveCursor(x, y, squish = false) {
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+          curX = x;
+          curY = y;
+          cursor.style.opacity = "1";
+          cursor.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)${squish ? " scale(0.84)" : ""}`;
+          if (squish) {
+            setTimeout(() => {
+              cursor.style.transform = `translate3d(${Math.round(curX)}px,${Math.round(curY)}px,0)`;
+            }, 140);
+          }
+          clearTimeout(idleTimer);
+          idleTimer = setTimeout(() => {
+            cursor.style.opacity = "0.28";
+          }, 4000);
+        }
+
+        function spawnRipple(x, y) {
+          const now = Date.now();
+          if (now - lastRippleAt < 90) return;
+          lastRippleAt = now;
+          const ring = document.createElement("div");
+          ring.style.cssText = `position:fixed;left:${Math.round(x)}px;top:${Math.round(y)}px;width:22px;height:22px;border-radius:50%;border:2.5px solid #a78bfa;background:rgba(124,58,237,0.22);pointer-events:none;z-index:2147483647;animation:__agyRipple 520ms cubic-bezier(0.22,1,0.36,1) forwards;`;
+          host.appendChild(ring);
+          setTimeout(() => ring.remove(), 550);
+        }
+
+        function coordsFromEvent(e) {
+          if (typeof e.clientX === "number" && typeof e.clientY === "number" && (e.clientX !== 0 || e.clientY !== 0)) {
+            return { x: e.clientX, y: e.clientY };
+          }
+          if (e.target && typeof e.target.getBoundingClientRect === "function") {
+            const rect = e.target.getBoundingClientRect();
+            if (rect.width > 0 || rect.height > 0) {
+              return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            }
+          }
+          return null;
+        }
+
+        function onMove(e) {
+          if (pill.contains(e.target)) return;
+          const pt = coordsFromEvent(e);
+          if (pt) moveCursor(pt.x, pt.y, false);
+        }
+
+        function onPress(e) {
+          if (pill.contains(e.target)) return;
+          const pt = coordsFromEvent(e);
+          if (!pt) return;
+          moveCursor(pt.x, pt.y, true);
+          spawnRipple(pt.x, pt.y);
+        }
+
+        function onFocusOrInput(e) {
+          if (pill.contains(e.target)) return;
+          if (!e.target || typeof e.target.getBoundingClientRect !== "function") return;
+          const rect = e.target.getBoundingClientRect();
+          if (rect.width <= 0 && rect.height <= 0) return;
+          moveCursor(rect.left + Math.min(rect.width * 0.5, 48), rect.top + rect.height / 2, false);
+        }
+
+        const opts = { capture: true, passive: true };
+        window.addEventListener("pointermove", onMove, opts);
+        window.addEventListener("mousemove", onMove, opts);
+        window.addEventListener("pointerdown", onPress, opts);
+        window.addEventListener("click", onPress, opts);
+        window.addEventListener("focusin", onFocusOrInput, opts);
+        window.addEventListener("input", onFocusOrInput, opts);
+
+        window.__agyCoworkCleanup = () => {
+          clearTimeout(idleTimer);
+          window.removeEventListener("pointermove", onMove, opts);
+          window.removeEventListener("mousemove", onMove, opts);
+          window.removeEventListener("pointerdown", onPress, opts);
+          window.removeEventListener("click", onPress, opts);
+          window.removeEventListener("focusin", onFocusOrInput, opts);
+          window.removeEventListener("input", onFocusOrInput, opts);
+        };
       },
       args: [active, label],
     });
