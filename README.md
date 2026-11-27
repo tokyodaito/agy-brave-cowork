@@ -1,46 +1,72 @@
-# Antigravity Cowork for Brave
+<p align="center">
+  <img src="assets/logo.png" alt="NumenLabs logo" width="160">
+</p>
 
-Локальное расширение для **Brave** + zero-dependency **MCP-сервер** для **Antigravity CLI (`agy`)**, добавляющее Cowork-режим работы с браузером:
+# Antigravity Cowork for Brave — Background Tab Groups, Visual Indicator & MCP Server
 
-- **Фоновые папки вкладок (`chrome.tabGroups`)** — под каждую задачу создаётся цветная свёрнутая группа вкладок с названием задачи, вся работа идёт в фоне без перехвата фокуса, после завершения папка автоматически удаляется.
-- **Визуальный индикатор + кнопка «Стоп»** — фиолетовая рамка и плашка с названием задачи на вкладках под управлением агента.
-- **Панель управления в тулбаре Brave** — статус подключения, список активных задач агента, быстрое открытие/закрытие групп и тумблеры настроек.
-- **Поиск по истории и закладкам** (read-only).
-- **Native Messaging без всплывающих диалогов** — работает полностью локально через Unix-сокет `/tmp/agy-brave-cowork.sock` (`chmod 0600`).
+**Developed by [NumenLabs](https://github.com/tokyodaito)**
 
-## Установка
+Zero-dependency Brave extension + local MCP server that brings a full **Cowork browser experience** to **Antigravity CLI (`agy`)**:
 
-Требуется Node.js 18+ и [Antigravity CLI (`agy`)](https://antigravity.google/docs).
+- **Background Task Tab Groups (`chrome.tabGroups`)** — creates a named, colored, collapsed tab group per task session, opens all agent tabs in the background without stealing focus, and deletes the group cleanly when the task finishes.
+- **Visual Agent Indicator & Instant Kill-Switch** — injects a subtle glowing border + floating status pill with a **Stop** button onto agent-controlled tabs, plus a toolbar popup to inspect, focus, or close active task groups.
+- **Native Messaging Bridge** — zero external npm dependencies, zero permission popups, communicates locally over a `0600` Unix domain socket (`/tmp/agy-brave-cowork.sock`).
+- **Read-Only Context** — search Brave browsing history and bookmarks directly from the agent.
+
+## Quick Start
+
+Requires **Node.js 18+**, **Brave Browser**, and **Antigravity CLI (`agy`)**.
+
+1. Clone and run the installer (Linux & macOS):
 
 ```bash
-chmod +x install.sh
+git clone https://github.com/tokyodaito/agy-brave-cowork.git
+cd agy-brave-cowork
 ./install.sh
 ```
 
-Затем:
-1. Открой `brave://extensions` в Brave.
-2. Включи **Режим разработчика** (Developer mode).
-3. Нажми **Загрузить распакованное** (Load unpacked) и выбери `~/.local/share/agy-brave-cowork/extension`.
-4. *(Рекомендуется)* Подключи `chrome-devtools-mcp` к твоему Brave:
-   ```bash
-   agy mcp add chrome-devtools npx -- -y chrome-devtools-mcp@latest \
-     --autoConnect \
-     --userDataDir="$HOME/.config/BraveSoftware/Brave-Browser"
-   ```
-   и включи тумблер в `brave://inspect/#remote-debugging`.
-5. *(Опционально)* Скопируй правила из `GEMINI.example.md` в `~/.gemini/config/GEMINI.md`.
-6. Перезапусти `agy`.
+2. Load the unpacked extension in Brave:
+   - Open `brave://extensions`
+   - Enable **Developer mode**
+   - Click **Load unpacked** and select `~/.local/share/agy-brave-cowork/extension`
 
-## Доступные MCP-инструменты (`brave-cowork`)
+3. *(Recommended)* Connect `chrome-devtools-mcp` to your live Brave profile for full DOM/click/fill/screenshot automation:
 
-| Инструмент | Описание |
+```bash
+agy mcp add chrome-devtools npx -- -y chrome-devtools-mcp@latest \
+  --autoConnect \
+  --userDataDir="$HOME/.config/BraveSoftware/Brave-Browser"
+```
+
+   Then open `brave://inspect/#remote-debugging` and enable **Allow remote debugging for this browser instance**.
+
+4. *(Optional)* Copy [GEMINI.example.md](./GEMINI.example.md) to `~/.gemini/config/GEMINI.md` so `agy` automatically creates collapsed background task folders, never steals focus, and cleans up after every browser task.
+
+5. Restart `agy`.
+
+## MCP Tools (`brave-cowork`)
+
+| Tool | Description |
 | --- | --- |
-| `brave_create_task_group` | Создать цветную (свёрнутую) папку вкладок под задачу и открыть в ней вкладки в фоне |
-| `brave_open_tab_in_group` | Открыть новую вкладку внутри существующей папки задачи |
-| `brave_list_task_groups` | Список всех групп вкладок и их вкладок |
-| `brave_update_task_group` | Переименовать, перекрасить, свернуть или развернуть папку |
-| `brave_close_task_group` | Закрыть все вкладки в папке и удалить её |
-| `brave_close_all_task_groups` | Закрыть все активные папки агента |
-| `brave_set_tab_indicator` | Показать/скрыть рамку-индикатор и кнопку «Стоп» на вкладке |
-| `brave_search_history` | Поиск по истории Brave (read-only) |
-| `brave_search_bookmarks` | Поиск по закладкам Brave (read-only) |
+| `brave_create_task_group` | Create a named, colored (collapsed by default) tab group and open background tabs inside it |
+| `brave_open_tab_in_group` | Open a new background tab inside an existing task group |
+| `brave_list_task_groups` | List all Brave tab groups and their tabs (marking agent-owned sessions) |
+| `brave_update_task_group` | Rename, recolor, collapse, or expand a tab group |
+| `brave_close_task_group` | Close all tabs in a task group, deleting the group folder |
+| `brave_close_all_task_groups` | Close and delete all active agent task groups |
+| `brave_set_tab_indicator` | Show or hide the visual agent border and Stop pill on a tab |
+| `brave_search_history` | Search Brave browsing history (read-only) |
+| `brave_search_bookmarks` | Search Brave bookmarks (read-only) |
+
+## Architecture
+
+```text
+agy (MCP client)
+  └── stdio JSON-RPC ──▶ mcp-server.mjs
+                            └── Unix socket (0600) ──▶ native-host.mjs
+                                                          └── Chrome Native Messaging ──▶ Brave Extension (MV3)
+```
+
+## License
+
+Proprietary — see [LICENSE](./LICENSE). Commercial use or reference requires 93% gross revenue share; charitable/non-profit use is strictly prohibited.

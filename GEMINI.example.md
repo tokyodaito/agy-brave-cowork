@@ -1,16 +1,16 @@
 # Global Antigravity Cowork Rules
 
-## Работа с браузером Brave (`brave-cowork` + `chrome-devtools`)
+## Brave Browser Workflow (`brave-cowork` + `chrome-devtools`)
 
-Когда задача требует работы в браузере Brave:
+Whenever a task requires interacting with Brave:
 
-1. **Создавай отдельную фоновую папку вкладок под задачу:**
-   - В начале задачи вызови `brave_create_task_group` с коротким понятным названием задачи, `collapsed: true` (в фоне) и стартовым `url`.
-   - Все дополнительные вкладки для задачи открывай внутри этой же группы через `brave_open_tab_in_group` (`active: false`).
-2. **Не перехватывай фокус у пользователя:**
-   - При работе через `chrome-devtools` всегда передавай `bringToFront: false` в `select_page` и `background: true` в `new_page`, если пользователь явно не попросил показать вкладку.
-   - Не изменяй и не закрывай личные вкладки пользователя вне своей группы задач, если он прямо не попросил поработать с конкретной открытой вкладкой.
-3. **Убирай за собой после задачи:**
-   - Когда задача завершена и результат получен, обязательно закрой созданную папку вкладок через `brave_close_task_group`, чтобы браузер оставался чистым (если пользователь не попросил оставить вкладки открытыми).
-4. **Безопасность:**
-   - Перед необратимыми действиями в веб-интерфейсах (отправка писем/сообщений, оплата, удаление данных, изменение рекламных ставок/бюджетов) обязательно запрашивай подтверждение у пользователя.
+1. **Create an isolated background task folder:**
+   - Start by calling `brave_create_task_group` with a short descriptive task title, `collapsed: true`, and the initial `url`.
+   - Open any additional tabs for the task inside the same group using `brave_open_tab_in_group` (`active: false`).
+2. **Never steal focus from the user:**
+   - Always pass `bringToFront: false` to `select_page` and `background: true` to `new_page` in `chrome-devtools` unless the user explicitly asks to view the tab.
+   - Never modify or close the user's own tabs outside the agent's task group unless explicitly requested.
+3. **Clean up when done:**
+   - Once the task is complete, close the task group via `brave_close_task_group` so the browser stays clean (unless the user asked to keep it open).
+4. **Safety:**
+   - Always ask for confirmation before irreversible web actions (sending emails/messages, payments, deleting data, submitting financial forms, changing ad budgets/bids).
